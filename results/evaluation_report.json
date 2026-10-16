@@ -1,0 +1,90 @@
+{
+  "evaluation_timestamp": "2026-10-15T08:47:19.785450+00:00",
+  "dataset_name": "synthetic_evaluation_benchmark_v1",
+  "dataset_version": "1.0.0",
+  "total_scenarios": 12,
+  "total_events": 19,
+  "detector_a_baseline": {
+    "name": "NetworkBaselineDetector (NET-BL-001)",
+    "primary_objective": "Network-Only Policy Violation Detection",
+    "classification": {
+      "total_cases": 12,
+      "positive_ground_truth": 6,
+      "negative_ground_truth": 6,
+      "true_positives": 6,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "false_positive_rate": 0.0,
+      "false_discovery_rate": 0.0
+    },
+    "relationship_reconstruction": {
+      "expected_relationships": 2,
+      "predicted_relationships": 0,
+      "true_positive_relationships": 0,
+      "false_positive_relationships": 0,
+      "false_negative_relationships": 2,
+      "precision": null,
+      "recall": 0.0,
+      "f1_score": null,
+      "precision_status": "not_supported (detector does not predict relationships)",
+      "recall_status": "evaluated"
+    },
+    "total_processing_time_ms": 0.38
+  },
+  "detector_b_cross_layer": {
+    "name": "CrossLayerCorrelator (CORR-CROSS-001)",
+    "primary_objective": "Cross-Layer Relationship Attribution & Enablement Correlation",
+    "classification": {
+      "total_cases": 12,
+      "positive_ground_truth": 6,
+      "negative_ground_truth": 6,
+      "true_positives": 2,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "false_negatives": 4,
+      "precision": 1.0,
+      "recall": 0.3333,
+      "f1_score": 0.5,
+      "false_positive_rate": 0.0,
+      "false_discovery_rate": 0.0
+    },
+    "relationship_reconstruction": {
+      "expected_relationships": 2,
+      "predicted_relationships": 2,
+      "true_positive_relationships": 2,
+      "false_positive_relationships": 0,
+      "false_negative_relationships": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "precision_status": "evaluated",
+      "recall_status": "evaluated"
+    },
+    "total_processing_time_ms": 0.23
+  },
+  "comparative_analysis": {
+    "policy_violation_recall": {
+      "baseline": 1.0,
+      "cross_layer": 0.3333,
+      "explanation": "Baseline detects all 6 unapproved network flows (Recall=1.0000). Cross-Layer specifically detects the 2 flows enabled by correlating security group changes (Recall=0.3333). Cross-layer is designed for causal perimeter change attribution, not broad static policy enforcement."
+    },
+    "relationship_attribution": {
+      "baseline_f1": null,
+      "baseline_status": "not_supported (detector does not predict relationships)",
+      "cross_layer_f1": 1.0,
+      "cross_layer_status": "evaluated",
+      "explanation": "Cross-layer correlation achieves F1=1.0000 on reconstructing administrative-to-flow relationships. Baseline does not attempt relationship reconstruction; its precision and F1 are undefined (null) with Recall=0.0000 on ground-truth links."
+    },
+    "false_positive_rate_delta": 0.0,
+    "latency_delta_ms": -0.15
+  },
+  "limitations": [
+    "Evaluated on synthetic benchmark scenarios with controlled timing.",
+    "Real-world AWS environments introduce variable log ingestion delays.",
+    "Synthetic scenarios validate logic; live effectiveness requires field validation."
+  ]
+}
