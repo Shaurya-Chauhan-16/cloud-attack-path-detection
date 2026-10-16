@@ -1,0 +1,279 @@
+[
+  {
+    "scenario_id": "sc-09-ambiguous-resource-mapping",
+    "events": [
+      {
+        "event_id": "ct-09",
+        "timestamp": "2026-10-15T10:00:00Z",
+        "source": "cloudtrail",
+        "action": "AuthorizeSecurityGroupIngress",
+        "actor": null,
+        "resource_id": "sg-target",
+        "source_ip": null,
+        "destination_ip": null,
+        "destination_port": null,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp",
+          "from_port": 8080,
+          "to_port": 8080,
+          "cidr_ipv4": "0.0.0.0/0"
+        }
+      },
+      {
+        "event_id": "fl-09",
+        "timestamp": "2026-10-15T10:00:20Z",
+        "source": "vpc_flow",
+        "action": "ACCEPT",
+        "actor": null,
+        "resource_id": null,
+        "source_ip": "198.51.100.10",
+        "destination_ip": "10.0.1.10",
+        "destination_port": 8080,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp"
+        }
+      }
+    ],
+    "configuration_history": {
+      "attachments": [
+        {
+          "resource_id": "eni-target",
+          "security_group_id": "sg-target",
+          "attached_at": "2026-10-14T10:00:00Z",
+          "detached_at": null
+        }
+      ],
+      "eni_to_ip_map": {
+        "eni-A": [
+          "10.0.1.10"
+        ],
+        "eni-B": [
+          "10.0.1.10"
+        ]
+      }
+    },
+    "policy": {
+      "policy_id": "eval-policy",
+      "rules": [
+        {
+          "rule_id": "RULE-HTTPS-APPROVED",
+          "description": null,
+          "source": "*",
+          "destination": "10.0.1.10",
+          "protocol": "tcp",
+          "destination_port": 443,
+          "destination_port_range": null,
+          "action": "APPROVED"
+        }
+      ],
+      "maintenance_exceptions": []
+    }
+  },
+  {
+    "scenario_id": "sc-10-out-of-order-telemetry",
+    "events": [
+      {
+        "event_id": "fl-10",
+        "timestamp": "2026-10-15T10:00:30Z",
+        "source": "vpc_flow",
+        "action": "ACCEPT",
+        "actor": null,
+        "resource_id": "eni-target",
+        "source_ip": "203.0.113.1",
+        "destination_ip": "10.0.1.10",
+        "destination_port": 8443,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp"
+        }
+      },
+      {
+        "event_id": "ct-10",
+        "timestamp": "2026-10-15T10:00:00Z",
+        "source": "cloudtrail",
+        "action": "AuthorizeSecurityGroupIngress",
+        "actor": null,
+        "resource_id": "sg-target",
+        "source_ip": null,
+        "destination_ip": null,
+        "destination_port": null,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp",
+          "from_port": 8443,
+          "to_port": 8443,
+          "cidr_ipv4": "0.0.0.0/0"
+        }
+      }
+    ],
+    "configuration_history": {
+      "attachments": [
+        {
+          "resource_id": "eni-target",
+          "security_group_id": "sg-target",
+          "attached_at": "2026-10-14T10:00:00Z",
+          "detached_at": null
+        }
+      ],
+      "eni_to_ip_map": {
+        "eni-target": [
+          "10.0.1.10"
+        ]
+      }
+    },
+    "policy": {
+      "policy_id": "eval-policy",
+      "rules": [
+        {
+          "rule_id": "RULE-HTTPS-APPROVED",
+          "description": null,
+          "source": "*",
+          "destination": "10.0.1.10",
+          "protocol": "tcp",
+          "destination_port": 443,
+          "destination_port_range": null,
+          "action": "APPROVED"
+        }
+      ],
+      "maintenance_exceptions": []
+    }
+  },
+  {
+    "scenario_id": "sc-11-missing-evidence",
+    "events": [
+      {
+        "event_id": "ct-11",
+        "timestamp": "2026-10-15T10:00:00Z",
+        "source": "cloudtrail",
+        "action": "AuthorizeSecurityGroupIngress",
+        "actor": null,
+        "resource_id": null,
+        "source_ip": null,
+        "destination_ip": null,
+        "destination_port": null,
+        "raw_record_id": null,
+        "details": {}
+      }
+    ],
+    "configuration_history": {
+      "attachments": [
+        {
+          "resource_id": "eni-target",
+          "security_group_id": "sg-target",
+          "attached_at": "2026-10-14T10:00:00Z",
+          "detached_at": null
+        }
+      ],
+      "eni_to_ip_map": {
+        "eni-target": [
+          "10.0.1.10"
+        ]
+      }
+    },
+    "policy": {
+      "policy_id": "eval-policy",
+      "rules": [
+        {
+          "rule_id": "RULE-HTTPS-APPROVED",
+          "description": null,
+          "source": "*",
+          "destination": "10.0.1.10",
+          "protocol": "tcp",
+          "destination_port": 443,
+          "destination_port_range": null,
+          "action": "APPROVED"
+        }
+      ],
+      "maintenance_exceptions": []
+    }
+  },
+  {
+    "scenario_id": "sc-12-rule-revoked-before-flow",
+    "events": [
+      {
+        "event_id": "ct-12-auth",
+        "timestamp": "2026-10-15T10:00:00Z",
+        "source": "cloudtrail",
+        "action": "AuthorizeSecurityGroupIngress",
+        "actor": null,
+        "resource_id": "sg-target",
+        "source_ip": null,
+        "destination_ip": null,
+        "destination_port": null,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp",
+          "from_port": 2222,
+          "to_port": 2222,
+          "cidr_ipv4": "0.0.0.0/0"
+        }
+      },
+      {
+        "event_id": "ct-12-revoke",
+        "timestamp": "2026-10-15T10:00:15Z",
+        "source": "cloudtrail",
+        "action": "RevokeSecurityGroupIngress",
+        "actor": null,
+        "resource_id": "sg-target",
+        "source_ip": null,
+        "destination_ip": null,
+        "destination_port": null,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp",
+          "from_port": 2222,
+          "to_port": 2222,
+          "cidr_ipv4": "0.0.0.0/0"
+        }
+      },
+      {
+        "event_id": "fl-12",
+        "timestamp": "2026-10-15T10:00:40Z",
+        "source": "vpc_flow",
+        "action": "ACCEPT",
+        "actor": null,
+        "resource_id": "eni-target",
+        "source_ip": "198.51.100.7",
+        "destination_ip": "10.0.1.10",
+        "destination_port": 2222,
+        "raw_record_id": null,
+        "details": {
+          "protocol": "tcp"
+        }
+      }
+    ],
+    "configuration_history": {
+      "attachments": [
+        {
+          "resource_id": "eni-target",
+          "security_group_id": "sg-target",
+          "attached_at": "2026-10-14T10:00:00Z",
+          "detached_at": null
+        }
+      ],
+      "eni_to_ip_map": {
+        "eni-target": [
+          "10.0.1.10"
+        ]
+      }
+    },
+    "policy": {
+      "policy_id": "eval-policy",
+      "rules": [
+        {
+          "rule_id": "RULE-HTTPS-APPROVED",
+          "description": null,
+          "source": "*",
+          "destination": "10.0.1.10",
+          "protocol": "tcp",
+          "destination_port": 443,
+          "destination_port_range": null,
+          "action": "APPROVED"
+        }
+      ],
+      "maintenance_exceptions": []
+    }
+  }
+]
