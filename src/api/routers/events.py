@@ -42,7 +42,7 @@ async def get_alert_evidence(
     evidence_service: EvidenceService = Depends(get_evidence_service),
 ) -> EventEvidenceResponse:
     """Retrieve forensic evidence events associated with a detection alert.
-    
+
     Includes explicit uncertainty notes and causation boundaries.
     """
     alert = alert_service.get_alert_by_id(alert_id)

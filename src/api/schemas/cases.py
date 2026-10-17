@@ -22,7 +22,7 @@ class CaseCreateRequest(BaseModel):
 
 class CaseResponse(BaseModel):
     """Investigation case response model.
-    
+
     Note: Stored in-memory in Phase 2 unless database persistence is configured.
     """
     model_config = ConfigDict(extra="allow")

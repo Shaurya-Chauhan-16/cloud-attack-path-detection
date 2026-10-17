@@ -11,7 +11,7 @@ from src.shared.enums import EventSource, FlowAction, PriorityLevel, PolicyDecis
 
 class BaseTelemetryEvent(BaseModel):
     """Agreed shared event contract across team members.
-    
+
     Attributes:
         event_id: Stable identifier for the event.
         timestamp: UTC timestamp of the event.
@@ -266,7 +266,3 @@ class AnalysisResult(BaseModel):
     edges: List[GraphEdge] = Field(default_factory=list)
     candidate_paths: List[CandidatePath] = Field(default_factory=list)
     scored_alerts: List[ScoredAlert] = Field(default_factory=list)
-
-
-
-

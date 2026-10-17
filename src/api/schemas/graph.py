@@ -17,7 +17,7 @@ from src.shared.models import (
 
 class GraphResponse(BaseModel):
     """API response schema for attack path graphs.
-    
+
     Preserves observed-versus-inferred graph information and edge confidence.
     """
     model_config = ConfigDict(extra="allow")
@@ -34,7 +34,7 @@ class GraphResponse(BaseModel):
 
 class AnalysisResponse(AnalysisResult):
     """Full analysis result API response.
-    
+
     Inherits directly from src.shared.models.AnalysisResult.
     """
     summary: Dict[str, Any] = Field(default_factory=dict)

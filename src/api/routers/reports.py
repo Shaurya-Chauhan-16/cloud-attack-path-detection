@@ -20,7 +20,7 @@ async def export_case_report_html(
     graph_service: GraphService = Depends(get_graph_service),
 ) -> Response:
     """Generate and return a standalone HTML incident report for an investigation case.
-    
+
     Safely handles unknown case IDs with 404, escapes untrusted telemetry strings,
     and documents synthetic evaluation data and in-memory persistence status.
     """

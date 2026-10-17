@@ -46,4 +46,3 @@ class EdgeNature(str, Enum):
     OBSERVED = "observed"
     PERMITTED = "permitted"
     INFERRED = "inferred"
-

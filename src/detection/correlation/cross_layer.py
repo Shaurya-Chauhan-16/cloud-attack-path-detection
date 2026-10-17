@@ -89,7 +89,7 @@ class CrossLayerCorrelator:
 
     def _is_cloudtrail_api_success(self, event: BaseTelemetryEvent) -> bool:
         """Conservatively check if a CloudTrail event represents a successful API operation.
-        
+
         Requires:
         - No error code or error message present in details or event fields.
         - If 'success' or 'response_elements' is explicitly provided, it must not indicate failure.
@@ -295,11 +295,11 @@ class CrossLayerCorrelator:
         configuration_history: Optional[ConfigurationHistory] = None,
     ) -> List[DetectionAlert]:
         """Correlate administrative events with subsequent matching accepted VPC flows.
-        
+
         Args:
             events: Telemetry batch (CloudTrail and VPC Flow Logs).
             configuration_history: Historical snapshot of resource attachments.
-            
+
         Returns:
             List of structured DetectionAlert objects representing correlated cross-layer findings.
         """

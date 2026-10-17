@@ -152,7 +152,7 @@ def calculate_relationship_metrics(
     detector_supports_relationships: bool = True,
 ) -> RelationshipMetrics:
     """Evaluate accuracy of reconstructed relationships between configuration and flows.
-    
+
     Convention for undefined metrics:
     - If detector does not support relationship reconstruction, precision and recall are None (status="not_supported").
     - If 0 relationships predicted: precision is None (status="undefined (zero predictions)"), F1 is None.
@@ -299,4 +299,3 @@ def run_detector_evaluation(
     )
 
     return cls_metrics, rel_metrics, scenario_results, total_time_ms
-

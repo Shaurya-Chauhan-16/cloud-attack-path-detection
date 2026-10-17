@@ -13,7 +13,7 @@ async def get_attack_graph(
     service: GraphService = Depends(get_graph_service),
 ) -> GraphResponse:
     """Retrieve the attack path graph generated from cross-layer telemetry analysis.
-    
+
     Includes observed communication, permitted reachability, and inferred sequence edges.
     """
     return service.get_attack_graph()

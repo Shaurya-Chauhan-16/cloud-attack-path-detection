@@ -50,7 +50,7 @@ class ReportExporter:
             synthetic_notice = """
             <div class="banner warning-banner">
                 <strong>⚠️ TELEMETRY FIDELITY NOTICE:</strong>
-                This report was generated using synthetic AWS CloudTrail and VPC Flow Log benchmark telemetry. 
+                This report was generated using synthetic AWS CloudTrail and VPC Flow Log benchmark telemetry.
                 Data demonstrates cross-layer detection, topological graph reconstruction, and lateral movement analysis in a controlled evaluation environment.
             </div>
             """
@@ -59,7 +59,7 @@ class ReportExporter:
         persistence_notice = f"""
         <div class="banner info-banner">
             <strong>ℹ️ CASE PERSISTENCE NOTICE:</strong>
-            Case storage mode: <code>{persistence_mode}</code>. 
+            Case storage mode: <code>{persistence_mode}</code>.
             Case records are managed in-memory in Phase 2/4 and will reset upon application service restart.
         </div>
         """

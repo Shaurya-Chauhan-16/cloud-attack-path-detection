@@ -12,7 +12,7 @@ from src.shared.models import DetectionAlert, PriorityScoreResult, ScoredAlert
 
 class AlertResponse(DetectionAlert):
     """API response schema for a single detection alert.
-    
+
     Inherits all fields directly from src.shared.models.DetectionAlert:
     - alert_id: str
     - rule_id: str

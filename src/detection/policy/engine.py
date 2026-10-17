@@ -191,7 +191,7 @@ class PolicyEngine:
 
 class NetworkBaselineDetector:
     """Network-only baseline detector.
-    
+
     Identifies accepted network flows that violate approved communication policy.
     Rejects flows that are marked REJECT from generating false positive baseline alerts.
     """

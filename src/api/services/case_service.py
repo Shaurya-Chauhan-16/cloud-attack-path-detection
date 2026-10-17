@@ -12,7 +12,7 @@ from src.api.schemas.cases import CaseCreateRequest, CaseResponse
 
 class CaseService:
     """In-memory investigation case management service.
-    
+
     IMPORTANT ARCHITECTURE NOTE:
     Phase 2 case persistence is in-memory only (cases reset upon process restart).
     Persistent SQLite/PostgreSQL storage for cases will be wired in future phases.

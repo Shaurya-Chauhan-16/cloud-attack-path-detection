@@ -19,7 +19,7 @@ class GraphService:
 
     def get_attack_graph(self) -> GraphResponse:
         """Retrieve the multi-relational attack graph from Member 2's analysis.
-        
+
         Preserves observed, permitted, and inferred edge categories.
         """
         analysis = self.alert_service.get_analysis_result()

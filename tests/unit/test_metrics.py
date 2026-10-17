@@ -244,4 +244,3 @@ def test_unsupported_detector_relationships_yields_not_supported_status():
     assert rel_m.f1_score is None
     assert rel_m.recall == 0.0
     assert "not_supported" in rel_m.precision_status
-

@@ -42,7 +42,7 @@ class AlertService:
         force_refresh: bool = False,
     ) -> AnalysisResult:
         """Get or compute analysis result using Member 2's analyze() interface.
-        
+
         Strictly integrates with Member 2's analyze(), never inventing fake alerts.
         """
         if self._cached_result and not force_refresh:

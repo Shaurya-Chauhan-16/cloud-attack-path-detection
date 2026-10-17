@@ -12,7 +12,7 @@ from src.shared.models import BaseTelemetryEvent
 
 class TelemetryEventResponse(BaseTelemetryEvent):
     """API response schema for a telemetry event.
-    
+
     Inherits directly from src.shared.models.BaseTelemetryEvent:
     - event_id: str
     - timestamp: datetime

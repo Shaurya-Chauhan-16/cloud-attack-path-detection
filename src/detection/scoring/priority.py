@@ -72,11 +72,11 @@ class PriorityScorer:
         context: Optional[Dict[str, Any]] = None,
     ) -> ScoredAlert:
         """Calculate explainable score for a DetectionAlert.
-        
+
         Args:
             alert: The input DetectionAlert from baseline detector or cross-layer correlator.
             context: Optional contextual metadata (e.g. resource_criticality, maintenance_window).
-            
+
         Returns:
             ScoredAlert envelope containing original alert and PriorityScoreResult.
         """

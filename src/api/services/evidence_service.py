@@ -50,7 +50,7 @@ class EvidenceService:
         uncertainty_disclaimer: Optional[str] = None,
     ) -> EventEvidenceResponse:
         """Assemble an evidence bundle for an alert from its referenced event IDs.
-        
+
         Preserves uncertainty notes and causation limits.
         """
         events = self.repository.get_events_by_ids(evidence_event_ids)
