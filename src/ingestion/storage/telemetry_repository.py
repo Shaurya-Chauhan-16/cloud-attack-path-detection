@@ -36,7 +36,7 @@ class TelemetryRepository:
 
     def load_configuration_history(self) -> ConfigurationHistory:
         """Parse configuration snapshot(s) into ConfigurationHistory.
-        
+
         Reads snapshot JSON files from snapshot_path.
         """
         attachments: List[SecurityGroupAttachment] = []
