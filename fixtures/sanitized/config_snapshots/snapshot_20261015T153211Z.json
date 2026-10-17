@@ -1,0 +1,604 @@
+{
+  "taken_at": "2026-10-15T15:31:32.344143+00:00",
+  "security_groups": [
+    {
+      "GroupId": "sg-00000000000000001",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [
+            {
+              "UserId": "111122223333",
+              "GroupId": "sg-00000000000000002"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "Cloudattack"
+        }
+      ],
+      "VpcId": "vpc-00000000000000001",
+      "SecurityGroupArn": "arn:aws:ec2:ap-south-1:111122223333:security-group/sg-00000000000000001",
+      "OwnerId": "111122223333",
+      "GroupName": "attackpath-sg-server-b",
+      "Description": "SSH to Server B from Server A only",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 22,
+          "ToPort": 22,
+          "UserIdGroupPairs": [
+            {
+              "UserId": "111122223333",
+              "GroupId": "sg-00000000000000002"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    },
+    {
+      "GroupId": "sg-00000000000000002",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [],
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "attackpath-lab"
+        }
+      ],
+      "VpcId": "vpc-00000000000000001",
+      "SecurityGroupArn": "arn:aws:ec2:ap-south-1:111122223333:security-group/sg-00000000000000002",
+      "OwnerId": "111122223333",
+      "GroupName": "attackpath-sg-server-a",
+      "Description": "SSH to Server A from admin IP",
+      "IpPermissions": [
+        {
+          "IpProtocol": "tcp",
+          "FromPort": 22,
+          "ToPort": 22,
+          "UserIdGroupPairs": [],
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    },
+    {
+      "GroupId": "sg-00000000000000003",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [],
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ],
+      "VpcId": "vpc-00000000000000001",
+      "SecurityGroupArn": "arn:aws:ec2:ap-south-1:111122223333:security-group/sg-00000000000000003",
+      "OwnerId": "111122223333",
+      "GroupName": "default",
+      "Description": "default VPC security group",
+      "IpPermissions": [
+        {
+          "IpProtocol": "-1",
+          "UserIdGroupPairs": [
+            {
+              "UserId": "111122223333",
+              "GroupId": "sg-00000000000000003"
+            }
+          ],
+          "IpRanges": [],
+          "Ipv6Ranges": [],
+          "PrefixListIds": []
+        }
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "Architecture": "x86_64",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "AttachTime": "2026-10-15 09:59:58+00:00",
+            "DeleteOnTermination": true,
+            "Status": "attached",
+            "VolumeId": "vol-0531f82f2bbb3b2bc",
+            "EbsCardIndex": 0
+          }
+        }
+      ],
+      "ClientToken": "e277a2e6-ead9-4b69-99d6-f9c366d30c0f",
+      "EbsOptimized": true,
+      "EnaSupport": true,
+      "Hypervisor": "xen",
+      "NetworkInterfaces": [
+        {
+          "Attachment": {
+            "AttachTime": "2026-10-15 09:59:57+00:00",
+            "AttachmentId": "eni-attach-07de6f43eab003e8f",
+            "DeleteOnTermination": true,
+            "DeviceIndex": 0,
+            "Status": "attached",
+            "NetworkCardIndex": 0
+          },
+          "Description": "",
+          "Groups": [
+            {
+              "GroupId": "sg-00000000000000001",
+              "GroupName": "attackpath-sg-server-b"
+            }
+          ],
+          "Ipv6Addresses": [],
+          "MacAddress": "02:ff:fb:b4:7a:a1",
+          "NetworkInterfaceId": "eni-00000000000000002",
+          "OwnerId": "111122223333",
+          "PrivateDnsName": "ip-10-20-2-10.ap-south-1.compute.internal",
+          "PrivateIpAddress": "10.20.2.10",
+          "PrivateIpAddresses": [
+            {
+              "Primary": true,
+              "PrivateDnsName": "ip-10-20-2-10.ap-south-1.compute.internal",
+              "PrivateIpAddress": "10.20.2.10"
+            }
+          ],
+          "SourceDestCheck": true,
+          "Status": "in-use",
+          "SubnetId": "subnet-00000000000000002",
+          "VpcId": "vpc-00000000000000001",
+          "InterfaceType": "interface",
+          "Operator": {
+            "Managed": false
+          }
+        }
+      ],
+      "RootDeviceName": "/dev/xvda",
+      "RootDeviceType": "ebs",
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-00000000000000001",
+          "GroupName": "attackpath-sg-server-b"
+        }
+      ],
+      "SourceDestCheck": true,
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "attackpath-server-b"
+        }
+      ],
+      "VirtualizationType": "hvm",
+      "CpuOptions": {
+        "CoreCount": 1,
+        "ThreadsPerCore": 2
+      },
+      "CapacityReservationSpecification": {
+        "CapacityReservationPreference": "open"
+      },
+      "HibernationOptions": {
+        "Configured": false
+      },
+      "MetadataOptions": {
+        "State": "applied",
+        "HttpTokens": "required",
+        "HttpPutResponseHopLimit": 2,
+        "HttpEndpoint": "enabled",
+        "HttpProtocolIpv6": "disabled",
+        "InstanceMetadataTags": "disabled"
+      },
+      "EnclaveOptions": {
+        "Enabled": false
+      },
+      "BootMode": "uefi-preferred",
+      "PlatformDetails": "Linux/UNIX",
+      "UsageOperation": "RunInstances",
+      "UsageOperationUpdateTime": "2026-10-15 09:59:57+00:00",
+      "PrivateDnsNameOptions": {
+        "HostnameType": "ip-name",
+        "EnableResourceNameDnsARecord": false,
+        "EnableResourceNameDnsAAAARecord": false
+      },
+      "MaintenanceOptions": {
+        "AutoRecovery": "default",
+        "RebootMigration": "default"
+      },
+      "CurrentInstanceBootMode": "uefi",
+      "NetworkPerformanceOptions": {
+        "BandwidthWeighting": "default"
+      },
+      "Operator": {
+        "Managed": false,
+        "HiddenByDefault": false
+      },
+      "SecondaryInterfaces": [],
+      "InstanceId": "i-00000000000000002",
+      "ImageId": "ami-00000000000000001",
+      "State": {
+        "Code": 16,
+        "Name": "running"
+      },
+      "PrivateDnsName": "ip-10-20-2-10.ap-south-1.compute.internal",
+      "PublicDnsName": "",
+      "StateTransitionReason": "",
+      "KeyName": "attackpath-lab",
+      "AmiLaunchIndex": 0,
+      "ProductCodes": [],
+      "InstanceType": "t3.micro",
+      "LaunchTime": "2026-10-15 09:59:57+00:00",
+      "Placement": {
+        "AvailabilityZoneId": "aps1-az1",
+        "GroupName": "",
+        "Tenancy": "default",
+        "AvailabilityZone": "ap-south-1a"
+      },
+      "Monitoring": {
+        "State": "disabled"
+      },
+      "SubnetId": "subnet-00000000000000002",
+      "VpcId": "vpc-00000000000000001",
+      "PrivateIpAddress": "10.20.2.10"
+    },
+    {
+      "Architecture": "x86_64",
+      "BlockDeviceMappings": [
+        {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "AttachTime": "2026-10-15 09:59:00+00:00",
+            "DeleteOnTermination": true,
+            "Status": "attached",
+            "VolumeId": "vol-003b4949179bbea9d",
+            "EbsCardIndex": 0
+          }
+        }
+      ],
+      "ClientToken": "cf3aecd8-5cab-404d-bb56-1d3e4af60584",
+      "EbsOptimized": true,
+      "EnaSupport": true,
+      "Hypervisor": "xen",
+      "NetworkInterfaces": [
+        {
+          "Association": {
+            "IpOwnerId": "amazon",
+            "PublicDnsName": "ec2-13-207-196-240.ap-south-1.compute.amazonaws.com",
+            "PublicIp": "198.18.3.79"
+          },
+          "Attachment": {
+            "AttachTime": "2026-10-15 09:58:59+00:00",
+            "AttachmentId": "eni-attach-0a58573c6ec66229a",
+            "DeleteOnTermination": true,
+            "DeviceIndex": 0,
+            "Status": "attached",
+            "NetworkCardIndex": 0
+          },
+          "Description": "",
+          "Groups": [
+            {
+              "GroupId": "sg-00000000000000002",
+              "GroupName": "attackpath-sg-server-a"
+            }
+          ],
+          "Ipv6Addresses": [],
+          "MacAddress": "02:ff:fd:60:db:7b",
+          "NetworkInterfaceId": "eni-00000000000000001",
+          "OwnerId": "111122223333",
+          "PrivateDnsName": "ip-10-20-1-10.ap-south-1.compute.internal",
+          "PrivateIpAddress": "10.20.1.10",
+          "PrivateIpAddresses": [
+            {
+              "Association": {
+                "IpOwnerId": "amazon",
+                "PublicDnsName": "ec2-13-207-196-240.ap-south-1.compute.amazonaws.com",
+                "PublicIp": "198.18.3.79"
+              },
+              "Primary": true,
+              "PrivateDnsName": "ip-10-20-1-10.ap-south-1.compute.internal",
+              "PrivateIpAddress": "10.20.1.10"
+            }
+          ],
+          "SourceDestCheck": true,
+          "Status": "in-use",
+          "SubnetId": "subnet-00000000000000001",
+          "VpcId": "vpc-00000000000000001",
+          "InterfaceType": "interface",
+          "Operator": {
+            "Managed": false
+          }
+        }
+      ],
+      "RootDeviceName": "/dev/xvda",
+      "RootDeviceType": "ebs",
+      "SecurityGroups": [
+        {
+          "GroupId": "sg-00000000000000002",
+          "GroupName": "attackpath-sg-server-a"
+        }
+      ],
+      "SourceDestCheck": true,
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "attackpath-server-a"
+        }
+      ],
+      "VirtualizationType": "hvm",
+      "CpuOptions": {
+        "CoreCount": 1,
+        "ThreadsPerCore": 2
+      },
+      "CapacityReservationSpecification": {
+        "CapacityReservationPreference": "open"
+      },
+      "HibernationOptions": {
+        "Configured": false
+      },
+      "MetadataOptions": {
+        "State": "applied",
+        "HttpTokens": "required",
+        "HttpPutResponseHopLimit": 2,
+        "HttpEndpoint": "enabled",
+        "HttpProtocolIpv6": "disabled",
+        "InstanceMetadataTags": "disabled"
+      },
+      "EnclaveOptions": {
+        "Enabled": false
+      },
+      "BootMode": "uefi-preferred",
+      "PlatformDetails": "Linux/UNIX",
+      "UsageOperation": "RunInstances",
+      "UsageOperationUpdateTime": "2026-10-15 09:58:59+00:00",
+      "PrivateDnsNameOptions": {
+        "HostnameType": "ip-name",
+        "EnableResourceNameDnsARecord": false,
+        "EnableResourceNameDnsAAAARecord": false
+      },
+      "MaintenanceOptions": {
+        "AutoRecovery": "default",
+        "RebootMigration": "default"
+      },
+      "CurrentInstanceBootMode": "uefi",
+      "NetworkPerformanceOptions": {
+        "BandwidthWeighting": "default"
+      },
+      "Operator": {
+        "Managed": false,
+        "HiddenByDefault": false
+      },
+      "SecondaryInterfaces": [],
+      "InstanceId": "i-00000000000000001",
+      "ImageId": "ami-00000000000000001",
+      "State": {
+        "Code": 16,
+        "Name": "running"
+      },
+      "PrivateDnsName": "ip-10-20-1-10.ap-south-1.compute.internal",
+      "PublicDnsName": "ec2-13-207-196-240.ap-south-1.compute.amazonaws.com",
+      "StateTransitionReason": "",
+      "KeyName": "attackpath-lab",
+      "AmiLaunchIndex": 0,
+      "ProductCodes": [],
+      "InstanceType": "t3.micro",
+      "LaunchTime": "2026-10-15 09:58:59+00:00",
+      "Placement": {
+        "AvailabilityZoneId": "aps1-az1",
+        "GroupName": "",
+        "Tenancy": "default",
+        "AvailabilityZone": "ap-south-1a"
+      },
+      "Monitoring": {
+        "State": "disabled"
+      },
+      "SubnetId": "subnet-00000000000000001",
+      "VpcId": "vpc-00000000000000001",
+      "PrivateIpAddress": "10.20.1.10",
+      "PublicIpAddress": "198.18.3.79"
+    }
+  ],
+  "subnets": [
+    {
+      "AvailabilityZoneId": "aps1-az1",
+      "MapCustomerOwnedIpOnLaunch": false,
+      "OwnerId": "111122223333",
+      "AssignIpv6AddressOnCreation": false,
+      "Ipv6CidrBlockAssociationSet": [],
+      "Tags": [
+        {
+          "Key": "project",
+          "Value": "attackpath"
+        },
+        {
+          "Key": "Name",
+          "Value": "attackpath-subnet-public1-ap-south-1a"
+        }
+      ],
+      "SubnetArn": "arn:aws:ec2:ap-south-1:111122223333:subnet/subnet-00000000000000001",
+      "EnableDns64": false,
+      "Ipv6Native": false,
+      "PrivateDnsNameOptionsOnLaunch": {
+        "HostnameType": "ip-name",
+        "EnableResourceNameDnsARecord": false,
+        "EnableResourceNameDnsAAAARecord": false
+      },
+      "BlockPublicAccessStates": {
+        "InternetGatewayBlockMode": "off"
+      },
+      "SubnetId": "subnet-00000000000000001",
+      "State": "available",
+      "VpcId": "vpc-00000000000000001",
+      "CidrBlock": "10.20.1.0/24",
+      "AvailableIpAddressCount": 250,
+      "AvailabilityZone": "ap-south-1a",
+      "DefaultForAz": false,
+      "MapPublicIpOnLaunch": true
+    },
+    {
+      "AvailabilityZoneId": "aps1-az1",
+      "MapCustomerOwnedIpOnLaunch": false,
+      "OwnerId": "111122223333",
+      "AssignIpv6AddressOnCreation": false,
+      "Ipv6CidrBlockAssociationSet": [],
+      "Tags": [
+        {
+          "Key": "project",
+          "Value": "attackpath"
+        },
+        {
+          "Key": "Name",
+          "Value": "attackpath-subnet-private1-ap-south-1a"
+        }
+      ],
+      "SubnetArn": "arn:aws:ec2:ap-south-1:111122223333:subnet/subnet-00000000000000002",
+      "EnableDns64": false,
+      "Ipv6Native": false,
+      "PrivateDnsNameOptionsOnLaunch": {
+        "HostnameType": "ip-name",
+        "EnableResourceNameDnsARecord": false,
+        "EnableResourceNameDnsAAAARecord": false
+      },
+      "BlockPublicAccessStates": {
+        "InternetGatewayBlockMode": "off"
+      },
+      "SubnetId": "subnet-00000000000000002",
+      "State": "available",
+      "VpcId": "vpc-00000000000000001",
+      "CidrBlock": "10.20.2.0/24",
+      "AvailableIpAddressCount": 250,
+      "AvailabilityZone": "ap-south-1a",
+      "DefaultForAz": false,
+      "MapPublicIpOnLaunch": false
+    }
+  ],
+  "route_tables": [
+    {
+      "Associations": [
+        {
+          "Main": true,
+          "RouteTableAssociationId": "rtbassoc-0da32e9b44070c083",
+          "RouteTableId": "rtb-00000000000000001",
+          "AssociationState": {
+            "State": "associated"
+          }
+        }
+      ],
+      "PropagatingVgws": [],
+      "RouteTableId": "rtb-00000000000000001",
+      "Routes": [
+        {
+          "DestinationCidrBlock": "10.20.0.0/16",
+          "GatewayId": "local",
+          "Origin": "CreateRouteTable",
+          "State": "active"
+        }
+      ],
+      "Tags": [],
+      "VpcId": "vpc-00000000000000001",
+      "OwnerId": "111122223333"
+    },
+    {
+      "Associations": [
+        {
+          "Main": false,
+          "RouteTableAssociationId": "rtbassoc-0335e43a0a038ad2b",
+          "RouteTableId": "rtb-00000000000000002",
+          "SubnetId": "subnet-00000000000000001",
+          "AssociationState": {
+            "State": "associated"
+          }
+        }
+      ],
+      "PropagatingVgws": [],
+      "RouteTableId": "rtb-00000000000000002",
+      "Routes": [
+        {
+          "DestinationCidrBlock": "10.20.0.0/16",
+          "GatewayId": "local",
+          "Origin": "CreateRouteTable",
+          "State": "active"
+        },
+        {
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": "igw-00000000000000001",
+          "Origin": "CreateRoute",
+          "State": "active"
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "project",
+          "Value": "attackpath"
+        },
+        {
+          "Key": "Name",
+          "Value": "attackpath-rtb-public"
+        }
+      ],
+      "VpcId": "vpc-00000000000000001",
+      "OwnerId": "111122223333"
+    },
+    {
+      "Associations": [
+        {
+          "Main": false,
+          "RouteTableAssociationId": "rtbassoc-028967af6938b65fb",
+          "RouteTableId": "rtb-00000000000000003",
+          "SubnetId": "subnet-00000000000000002",
+          "AssociationState": {
+            "State": "associated"
+          }
+        }
+      ],
+      "PropagatingVgws": [],
+      "RouteTableId": "rtb-00000000000000003",
+      "Routes": [
+        {
+          "DestinationCidrBlock": "10.20.0.0/16",
+          "GatewayId": "local",
+          "Origin": "CreateRouteTable",
+          "State": "active"
+        }
+      ],
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "attackpath-rtb-private1-ap-south-1a"
+        },
+        {
+          "Key": "project",
+          "Value": "attackpath"
+        }
+      ],
+      "VpcId": "vpc-00000000000000001",
+      "OwnerId": "111122223333"
+    }
+  ]
+}

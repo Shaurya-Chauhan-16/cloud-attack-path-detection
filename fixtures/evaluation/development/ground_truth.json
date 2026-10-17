@@ -1,0 +1,73 @@
+[
+  {
+    "scenario_id": "sc-01-normal-approved",
+    "category": "normal_approved",
+    "description": "Legitimate HTTPS traffic conforming to approved policy.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-02-authorized-maintenance",
+    "category": "authorized_maintenance",
+    "description": "SSH during approved maintenance window.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-03-sg-change-matching-flow",
+    "category": "cross_layer_enablement",
+    "description": "Unauthorized SG change opening port 3389 followed by matching accepted RDP flow.",
+    "is_positive_finding": true,
+    "expected_rule_id": "CORR-CROSS-001",
+    "expected_relationships": [
+      {
+        "config_event_id": "ct-03",
+        "flow_event_id": "fl-03",
+        "resource_id": "eni-target",
+        "relation_type": "inferred_sequence"
+      }
+    ]
+  },
+  {
+    "scenario_id": "sc-04-sg-change-no-traffic",
+    "category": "config_no_traffic",
+    "description": "Security group opened but no network communication attempted.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-05-unrelated-change-traffic",
+    "category": "unrelated_telemetry",
+    "description": "Unrelated configuration change on different SG and normal approved HTTPS flow.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-06-failed-api-request",
+    "category": "failed_api_call",
+    "description": "Blocked administrative call should not indicate perimeter change.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-07-unapproved-flow-no-config-change",
+    "category": "unapproved_network_only",
+    "description": "Unapproved flow violating policy without any CloudTrail event.",
+    "is_positive_finding": true,
+    "expected_rule_id": "NET-BL-001",
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-08-flow-outside-window",
+    "category": "outside_window",
+    "description": "Flow exceeds 300s correlation window from config change.",
+    "is_positive_finding": true,
+    "expected_rule_id": "NET-BL-001",
+    "expected_relationships": []
+  }
+]
