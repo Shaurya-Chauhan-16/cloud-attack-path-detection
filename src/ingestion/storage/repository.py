@@ -1,229 +1,159 @@
-"""Data access layer for Member 1's SQLite database and snapshot files.
+"""Repository for normalized telemetry.
 
-Provides clean, read-only extraction of BaseTelemetryEvent and ConfigurationHistory
-from data/local/events.db (or fixtures/sanitized) and snapshot JSONs.
+Typical use::
+
+    con = connect()                     # data/local/events.db
+    repo = EventRepository(con)
+    summary = repo.ingest_all()         # raw flow_events/trail_events -> events
+    events = repo.get_events(source=EventSource.CLOUDTRAIL)
+
+Semantics
+---------
+* Idempotent: ``event_id`` is the primary key and the FIRST write wins; re-ingesting
+  the same raw rows adds nothing.
+* Time filters are ``start <= timestamp < end`` in UTC (naive datetimes are treated as UTC).
+* Results are ordered by ``(timestamp, event_id)`` so output is deterministic.
+* Malformed raw records are recorded in ``ingest_errors`` and never abort ingestion.
 """
-from datetime import datetime, timezone
-import json
-from pathlib import Path
-import sqlite3
-from typing import Dict, List, Optional, Tuple
+from __future__ import annotations
 
+import hashlib
+import json
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from src.ingestion.normalization.mapper import normalize_batch
+from src.ingestion.storage.models import event_to_row, format_ts, row_to_event
 from src.shared.enums import EventSource
-from src.shared.models import (
-    BaseTelemetryEvent,
-    ConfigurationHistory,
-    SecurityGroupAttachment,
+from src.shared.models import BaseTelemetryEvent
+
+_INSERT = (
+    "INSERT OR IGNORE INTO events (event_id, timestamp, source, action, actor, resource_id, "
+    "source_ip, destination_ip, destination_port, raw_record_id, details_json, extra_json, "
+    "ingested_at) VALUES (:event_id, :timestamp, :source, :action, :actor, :resource_id, "
+    ":source_ip, :destination_ip, :destination_port, :raw_record_id, :details_json, "
+    ":extra_json, :ingested_at)"
 )
 
 
-class TelemetryRepository:
-    """Repository accessing Member 1's SQLite database and configuration snapshots."""
+@dataclass
+class IngestSummary:
+    """Counts for one ingest run. ``read == stored + duplicates + skipped + malformed``."""
+    read: int = 0
+    stored: int = 0
+    duplicates: int = 0
+    skipped: int = 0     # valid but no traffic (NODATA/SKIPDATA)
+    malformed: int = 0
 
-    def __init__(
-        self,
-        db_path: Optional[str] = None,
-        snapshot_path: Optional[str] = None,
-    ):
-        # Default paths to project standard locations
-        self.db_path = Path(db_path) if db_path else Path("data/local/events.db")
-        self.snapshot_path = Path(snapshot_path) if snapshot_path else Path("data/local/snapshots")
+    def __add__(self, other: "IngestSummary") -> "IngestSummary":
+        return IngestSummary(*(a + b for a, b in zip(
+            (self.read, self.stored, self.duplicates, self.skipped, self.malformed),
+            (other.read, other.stored, other.duplicates, other.skipped, other.malformed))))
 
-    def _get_connection(self) -> Optional[sqlite3.Connection]:
-        if not self.db_path.exists():
-            return None
-        return sqlite3.connect(str(self.db_path))
 
-    def load_configuration_history(self) -> ConfigurationHistory:
-        """Parse configuration snapshot(s) into ConfigurationHistory.
-        
-        Reads snapshot JSON files from snapshot_path.
-        """
-        attachments: List[SecurityGroupAttachment] = []
-        eni_to_ip_map: Dict[str, List[str]] = {}
+class EventRepository:
+    def __init__(self, con: sqlite3.Connection):
+        self.con = con
+        self.con.row_factory = sqlite3.Row
 
-        snap_files = []
-        if self.snapshot_path.is_file():
-            snap_files = [self.snapshot_path]
-        elif self.snapshot_path.is_dir():
-            snap_files = sorted(list(self.snapshot_path.glob("*.json")))
+    # ------------------------------------------------------------------ writes
+    def save_events(self, events: Iterable[BaseTelemetryEvent]) -> int:
+        """Insert events in one transaction. Returns how many were NEW (dupes ignored)."""
+        now = datetime.now(timezone.utc)
+        before = self.con.total_changes
+        with self.con:
+            self.con.executemany(_INSERT, [event_to_row(e, now) for e in events])
+        return self.con.total_changes - before
 
-        if not snap_files:
-            # Fall back to fixtures/sanitized/config_snapshots if available
-            fixture_snaps = Path("fixtures/sanitized/config_snapshots")
-            if fixture_snaps.is_dir():
-                snap_files = sorted(list(fixture_snaps.glob("*.json")))
+    def save_event(self, event: BaseTelemetryEvent) -> bool:
+        return self.save_events([event]) == 1
 
-        for sf in snap_files:
-            try:
-                data = json.loads(sf.read_text())
-                raw_time = data.get("taken_at")
-                if raw_time:
-                    snap_time = datetime.fromisoformat(raw_time.replace("Z", "+00:00"))
-                else:
-                    snap_time = datetime.now(timezone.utc)
+    def record_error(self, kind: str, record_id: Optional[str], message: str,
+                     raw: Optional[Any] = None) -> None:
+        """Store a normalization failure once per (kind, record, message)."""
+        if record_id is None:
+            record_id = "anon-" + hashlib.sha1(
+                json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest()[:16]
+        with self.con:
+            self.con.execute(
+                "INSERT OR IGNORE INTO ingest_errors (kind, record_id, error, created_at) "
+                "VALUES (?,?,?,?)",
+                (kind, record_id, message, format_ts(datetime.now(timezone.utc))))
 
-                for inst in data.get("instances", []):
-                    for ni in inst.get("NetworkInterfaces", []):
-                        eni_id = ni.get("NetworkInterfaceId")
-                        if not eni_id:
-                            continue
-                        ips = [
-                            ip["PrivateIpAddress"]
-                            for ip in ni.get("PrivateIpAddresses", [])
-                            if "PrivateIpAddress" in ip
-                        ]
-                        if ips:
-                            eni_to_ip_map[eni_id] = ips
-
-                        for g in ni.get("Groups", []):
-                            sg_id = g.get("GroupId")
-                            if sg_id:
-                                attachments.append(
-                                    SecurityGroupAttachment(
-                                        resource_id=eni_id,
-                                        security_group_id=sg_id,
-                                        attached_at=snap_time,
-                                    )
-                                )
-            except Exception:
-                continue
-
-        return ConfigurationHistory(
-            attachments=attachments,
-            eni_to_ip_map=eni_to_ip_map,
-        )
+    # ------------------------------------------------------------------- reads
+    def get_event(self, event_id: str) -> Optional[BaseTelemetryEvent]:
+        row = self.con.execute("SELECT * FROM events WHERE event_id = ?", (event_id,)).fetchone()
+        return row_to_event(row) if row else None
 
     def get_events(
         self,
-        source: Optional[EventSource] = None,
-        limit: int = 100,
-        offset: int = 0,
-        event_id: Optional[str] = None,
+        source: Optional[Union[EventSource, str]] = None,
+        action: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        limit: Optional[int] = None,
     ) -> List[BaseTelemetryEvent]:
-        """Query normalized BaseTelemetryEvents from Member 1's SQLite database."""
-        conn = self._get_connection()
-        if not conn:
-            return []
+        clauses, params = [], []  # type: List[str], List[Any]
+        if source is not None:
+            clauses.append("source = ?")
+            params.append(EventSource(source).value)
+        if action is not None:
+            clauses.append("action = ?")
+            params.append(action)
+        if resource_id is not None:
+            clauses.append("resource_id = ?")
+            params.append(resource_id)
+        if start is not None:
+            clauses.append("timestamp >= ?")
+            params.append(format_ts(start))
+        if end is not None:
+            clauses.append("timestamp < ?")
+            params.append(format_ts(end))
+        sql = "SELECT * FROM events"
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY timestamp, event_id"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(int(limit))
+        return [row_to_event(r) for r in self.con.execute(sql, params)]
 
-        events: List[BaseTelemetryEvent] = []
-        try:
-            cursor = conn.cursor()
+    def count_events(self, source: Optional[Union[EventSource, str]] = None) -> int:
+        if source is None:
+            return self.con.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+        return self.con.execute("SELECT COUNT(*) FROM events WHERE source = ?",
+                                (EventSource(source).value,)).fetchone()[0]
 
-            # 1. Query CloudTrail events
-            if source is None or source == EventSource.CLOUDTRAIL:
-                if event_id:
-                    cursor.execute(
-                        "SELECT event_id, event_time, event_name, event_source, user_arn, source_ip, raw "
-                        "FROM trail_events WHERE event_id = ?",
-                        (event_id,),
-                    )
-                else:
-                    cursor.execute(
-                        "SELECT event_id, event_time, event_name, event_source, user_arn, source_ip, raw "
-                        "FROM trail_events ORDER BY event_time DESC LIMIT ? OFFSET ?",
-                        (limit, offset),
-                    )
-                for row in cursor.fetchall():
-                    eid, etime, ename, esrc, uarn, sip, raw_str = row
-                    raw = json.loads(raw_str) if raw_str else {}
-                    req = raw.get("requestParameters") or {}
-                    group_id = req.get("groupId")
-                    perms = req.get("ipPermissions", {})
-                    items = perms.get("items", []) if isinstance(perms, dict) else perms
+    def get_errors(self, kind: Optional[str] = None) -> List[Dict[str, str]]:
+        sql, params = "SELECT kind, record_id, error FROM ingest_errors", []  # type: str, list
+        if kind:
+            sql, params = sql + " WHERE kind = ?", [kind]
+        return [dict(r) for r in self.con.execute(sql + " ORDER BY id", params)]
 
-                    details: Dict[str, Any] = {"raw": raw, "requestParameters": req}
-                    if items and isinstance(items, list):
-                        first_item = items[0]
-                        details["protocol"] = first_item.get("ipProtocol")
-                        details["from_port"] = first_item.get("fromPort")
-                        details["to_port"] = first_item.get("toPort")
-                        ip_ranges = first_item.get("ipRanges", {})
-                        if isinstance(ip_ranges, dict) and "items" in ip_ranges:
-                            cidr_items = ip_ranges["items"]
-                            if cidr_items and "cidrIp" in cidr_items[0]:
-                                details["cidr_ipv4"] = cidr_items[0]["cidrIp"]
-                        groups = first_item.get("groups", {})
-                        if isinstance(groups, dict) and "items" in groups:
-                            g_items = groups["items"]
-                            if g_items and "groupId" in g_items[0]:
-                                details["referenced_group_id"] = g_items[0]["groupId"]
+    # ------------------------------------------------- raw tables -> events
+    def _ingest_raw(self, table: str, kind: str) -> IngestSummary:
+        exists = self.con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()
+        if not exists:
+            return IngestSummary()
+        rows = [dict(r) for r in self.con.execute(f"SELECT * FROM {table}")]
+        events, skipped, errors = normalize_batch(rows, kind)
+        for record_id, message in errors:
+            self.record_error(kind, record_id, message, raw=record_id)
+        new = self.save_events(events)
+        return IngestSummary(read=len(rows), stored=new, duplicates=len(events) - new,
+                             skipped=skipped, malformed=len(errors))
 
-                    try:
-                        ts = datetime.fromisoformat(etime.replace("Z", "+00:00")) if etime else datetime.now(timezone.utc)
-                    except Exception:
-                        ts = datetime.now(timezone.utc)
+    def ingest_raw_flow_events(self) -> IngestSummary:
+        return self._ingest_raw("flow_events", "flow")
 
-                    events.append(
-                        BaseTelemetryEvent(
-                            event_id=eid,
-                            timestamp=ts,
-                            source=EventSource.CLOUDTRAIL,
-                            action=ename,
-                            actor=uarn,
-                            resource_id=group_id,
-                            source_ip=sip,
-                            raw_record_id=raw.get("requestID"),
-                            details=details,
-                        )
-                    )
+    def ingest_raw_trail_events(self) -> IngestSummary:
+        return self._ingest_raw("trail_events", "cloudtrail")
 
-            # 2. Query VPC Flow events
-            if (source is None or source == EventSource.VPC_FLOW) and (not event_id or not events):
-                if event_id:
-                    cursor.execute(
-                        "SELECT event_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, action, start, end "
-                        "FROM flow_events WHERE event_id = ?",
-                        (event_id,),
-                    )
-                else:
-                    cursor.execute(
-                        "SELECT event_id, interface_id, srcaddr, dstaddr, srcport, dstport, protocol, action, start, end "
-                        "FROM flow_events ORDER BY start DESC LIMIT ? OFFSET ?",
-                        (limit, offset),
-                    )
-                for row in cursor.fetchall():
-                    eid, eni, srcaddr, dstaddr, srcport, dstport, proto, act, start_ts, end_ts = row
-                    try:
-                        ts = datetime.fromtimestamp(int(start_ts), tz=timezone.utc)
-                    except Exception:
-                        ts = datetime.now(timezone.utc)
-
-                    dest_port = int(dstport) if dstport and dstport.isdigit() else None
-
-                    events.append(
-                        BaseTelemetryEvent(
-                            event_id=eid,
-                            timestamp=ts,
-                            source=EventSource.VPC_FLOW,
-                            action=act,
-                            resource_id=eni,
-                            source_ip=srcaddr,
-                            destination_ip=dstaddr,
-                            destination_port=dest_port,
-                            details={
-                                "protocol": proto,
-                                "srcport": srcport,
-                                "start": start_ts,
-                                "end": end_ts,
-                            },
-                        )
-                    )
-        finally:
-            conn.close()
-
-        return events
-
-    def get_event_by_id(self, event_id: str) -> Optional[BaseTelemetryEvent]:
-        """Fetch a single telemetry event by ID."""
-        events = self.get_events(event_id=event_id, limit=1)
-        return events[0] if events else None
-
-    def get_events_by_ids(self, event_ids: List[str]) -> List[BaseTelemetryEvent]:
-        """Fetch multiple telemetry events by their IDs."""
-        found = []
-        for eid in event_ids:
-            evt = self.get_event_by_id(eid)
-            if evt:
-                found.append(evt)
-        return found
+    def ingest_all(self) -> IngestSummary:
+        return self.ingest_raw_flow_events() + self.ingest_raw_trail_events()
+# Backward-compatible repository used by the existing API services.
+from src.ingestion.storage.telemetry_repository import TelemetryRepository
