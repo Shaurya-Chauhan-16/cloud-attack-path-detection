@@ -128,6 +128,9 @@ class SecurityGroupRule(BaseModel):
     to_port: Optional[int] = None
     cidr_ipv4: Optional[str] = None
     cidr_ipv6: Optional[str] = None
+    # Source is another security group (AWS UserIdGroupPairs / source_security_group_id)
+    # rather than a CIDR. When set, cidr_ipv4 is None and the rule must NOT be treated as a wildcard.
+    referenced_security_group_id: Optional[str] = None
     description: Optional[str] = None
 
 

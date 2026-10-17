@@ -239,6 +239,7 @@ class GraphBuilder:
 
         # 4. Process Cross-Layer Correlation Alerts -> Inferred Sequence
         if alerts:
+            ct_times = {ev.event_id: ev.timestamp for ev in events}
             for alert in alerts:
                 # Extract evidence and related resources
                 ct_id = alert.details.get("cloudtrail_event_id")
@@ -265,7 +266,65 @@ class GraphBuilder:
                             },
                         )
 
+                # 5. SG-to-SG references verified by correlation:
+                #    referenced SG --(permitted_reachability)--> protected SG.
+                #    Combined with ENI -> SG attachment edges this yields
+                #    source ENI -> referenced SG -> protected SG -> target ENI.
+                self._add_sg_reference_edges(alert, ct_id, ct_times)
+
         return self.graph
+
+    @staticmethod
+    def _clean_id(value: Any) -> Optional[str]:
+        """Return a stripped non-empty string ID, else None (never fabricate identities)."""
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
+
+    def _add_sg_reference_edges(
+        self,
+        alert: DetectionAlert,
+        ct_id: Optional[str],
+        ct_times: Dict[str, datetime],
+    ) -> None:
+        """Add permitted-reachability edges for SG-to-SG references recorded on an alert."""
+        refs = alert.details.get("sg_references") or []
+        if not isinstance(refs, list):
+            return
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            ref_sg = self._clean_id(ref.get("referenced_security_group_id"))
+            prot_sg = self._clean_id(ref.get("security_group_id")) or self._clean_id(
+                alert.details.get("security_group_id")
+            )
+            if not ref_sg or not prot_sg:
+                continue  # Missing/unusable reference: no edge rather than a guessed one
+
+            ref_node = self.add_node(ref_sg, "security_group")
+            prot_node = self.add_node(prot_sg, "security_group")
+            from_p, to_p = ref.get("from_port"), ref.get("to_port")
+            port = from_p if from_p is not None and from_p == to_p else None
+            self.add_edge(
+                source_node=ref_node,
+                target_node=prot_node,
+                relation=RelationshipType.PERMITTED_REACHABILITY.value,
+                observed_or_inferred=EdgeNature.PERMITTED.value,
+                evidence_event_ids=[ct_id] if ct_id else [],
+                valid_time=ct_times.get(ct_id) if ct_id else None,
+                confidence_reason=(
+                    "Ingress rule referencing source security group "
+                    "(authorization validated by cross-layer correlation)"
+                ),
+                protocol=ref.get("protocol"),
+                port=port,
+                details={
+                    "alert_id": alert.alert_id,
+                    "from_port": from_p,
+                    "to_port": to_p,
+                    "source_resource_ids": sorted(ref.get("source_resource_ids") or []),
+                },
+            )
 
     def to_graph_data(self) -> GraphData:
         """Export graph to JSON-serializable GraphData model for Member 3 API/UI."""
