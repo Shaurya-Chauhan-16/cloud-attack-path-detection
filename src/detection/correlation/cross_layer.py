@@ -10,6 +10,8 @@ Key Principles:
    using timestamped configuration history.
 4. Enforces a strict temporal correlation window (default 300s) after rule authorization.
 5. Verifies the rule was not revoked prior to the flow.
+5b. For SG-to-SG rules (UserIdGroupPairs / source_security_group_id), verifies the flow's source
+   ENI carried the referenced security group at flow time; never treats a reference as a wildcard.
 6. Does NOT equate configuration identity with flow traffic identity.
 7. Preserves uncertainty and explicitly documents candidate relationship rather than confirmed compromise.
 """
@@ -110,6 +112,43 @@ class CrossLayerCorrelator:
 
         return True
 
+    @staticmethod
+    def _extract_referenced_sg_ids(group_pairs: Any) -> List[str]:
+        """Extract referenced security group IDs from AWS UserIdGroupPairs.
+
+        Accepts the AWS shapes (``groupId`` / ``GroupId`` / ``group_id``) and bare ID strings.
+        Entries without a usable, non-empty string ID are dropped rather than guessed.
+        """
+        if isinstance(group_pairs, (dict, str)):
+            group_pairs = [group_pairs]
+        if not isinstance(group_pairs, list):
+            return []
+
+        ref_ids: List[str] = []
+        for pair in group_pairs:
+            if isinstance(pair, dict):
+                raw = pair.get("groupId") or pair.get("GroupId") or pair.get("group_id")
+            else:
+                raw = pair
+            if isinstance(raw, str) and raw.strip():
+                ref_id = raw.strip()
+                if ref_id not in ref_ids:
+                    ref_ids.append(ref_id)
+        return ref_ids
+
+    def _resolve_source_resource(
+        self,
+        flow: BaseTelemetryEvent,
+        configuration_history: Optional[ConfigurationHistory],
+    ) -> Optional[str]:
+        """Map a flow's source IP to exactly one ENI/resource, or None if unknown/ambiguous."""
+        if not configuration_history or not flow.source_ip:
+            return None
+        candidates = configuration_history.get_resource_ids_for_ip(flow.source_ip)
+        if len(candidates) == 1:
+            return candidates[0]
+        return None
+
     def _extract_sg_rules_from_event(
         self, event: BaseTelemetryEvent
     ) -> List[SecurityGroupRule]:
@@ -128,6 +167,29 @@ class CrossLayerCorrelator:
                 from_p = perm.get("fromPort") or perm.get("from_port")
                 to_p = perm.get("toPort") or perm.get("to_port")
                 ip_ranges = perm.get("ipRanges") or perm.get("ip_ranges") or []
+
+                # SG-to-SG references (AWS UserIdGroupPairs): source is a security group, not a CIDR.
+                raw_pairs = (
+                    perm.get("userIdGroupPairs")
+                    or perm.get("UserIdGroupPairs")
+                    or perm.get("user_id_group_pairs")
+                )
+                ref_sg_ids = self._extract_referenced_sg_ids(raw_pairs)
+                for ref_sg_id in ref_sg_ids:
+                    rules.append(
+                        SecurityGroupRule(
+                            security_group_id=sg_id,
+                            protocol=proto,
+                            from_port=from_p,
+                            to_port=to_p,
+                            referenced_security_group_id=ref_sg_id,
+                        )
+                    )
+                if raw_pairs and not ref_sg_ids and not ip_ranges:
+                    # Group pairs were present but unusable: never fall back to a 0.0.0.0/0 wildcard.
+                    continue
+                if ref_sg_ids and not ip_ranges:
+                    continue
 
                 if isinstance(ip_ranges, list) and ip_ranges:
                     for ip_range in ip_ranges:
@@ -162,16 +224,42 @@ class CrossLayerCorrelator:
             return rules
 
         # Case 2: Flat normalized attributes in details
-        if "protocol" in details or "from_port" in details or "cidr_ipv4" in details:
-            rules.append(
-                SecurityGroupRule(
-                    security_group_id=sg_id,
-                    protocol=self._normalize_protocol(details.get("protocol")),
-                    from_port=details.get("from_port"),
-                    to_port=details.get("to_port"),
-                    cidr_ipv4=details.get("cidr_ipv4") or details.get("cidr_ip"),
-                )
+        sg_ref_keys = ("source_security_group_id", "sourceSecurityGroupId")
+        flat_ref_present = any(k in details for k in sg_ref_keys)
+        if (
+            "protocol" in details
+            or "from_port" in details
+            or "cidr_ipv4" in details
+            or flat_ref_present
+        ):
+            proto = self._normalize_protocol(details.get("protocol"))
+            cidr = details.get("cidr_ipv4") or details.get("cidr_ip")
+            ref_sg_ids = self._extract_referenced_sg_ids(
+                [details.get(k) for k in sg_ref_keys if details.get(k)]
             )
+
+            # CIDR rule: kept exactly as before unless the event is purely an SG reference.
+            if cidr or not flat_ref_present:
+                rules.append(
+                    SecurityGroupRule(
+                        security_group_id=sg_id,
+                        protocol=proto,
+                        from_port=details.get("from_port"),
+                        to_port=details.get("to_port"),
+                        cidr_ipv4=cidr,
+                    )
+                )
+            # SG-reference rule(s). An unusable reference yields no rule (no wildcard fallback).
+            for ref_sg_id in ref_sg_ids:
+                rules.append(
+                    SecurityGroupRule(
+                        security_group_id=sg_id,
+                        protocol=proto,
+                        from_port=details.get("from_port"),
+                        to_port=details.get("to_port"),
+                        referenced_security_group_id=ref_sg_id,
+                    )
+                )
 
         return rules
 
@@ -189,6 +277,9 @@ class CrossLayerCorrelator:
                 rev_rules = self._extract_sg_rules_from_event(rev)
                 for r in rev_rules:
                     if r.security_group_id == rule.security_group_id:
+                        # A revoke of a CIDR rule does not revoke an SG-reference rule (and vice versa)
+                        if r.referenced_security_group_id != rule.referenced_security_group_id:
+                            continue
                         # Check protocol and port match
                         if (
                             (r.protocol in ("*", "all") or r.protocol == rule.protocol)
@@ -259,6 +350,7 @@ class CrossLayerCorrelator:
             matching_flows: List[BaseTelemetryEvent] = []
             matched_resource_ids: Set[str] = set()
             reasons: List[str] = []
+            sg_ref_sources: Dict[Tuple[str, str, str, Optional[int], Optional[int]], Set[str]] = {}
 
             for rule in sg_rules:
                 for flow in vpc_accepted_flows:
@@ -278,8 +370,20 @@ class CrossLayerCorrelator:
                     if not self._is_port_in_range(flow.destination_port, rule.from_port, rule.to_port):
                         continue
 
-                    # Validate source CIDR match
-                    if not self._is_ip_in_cidr(flow.source_ip, rule.cidr_ipv4):
+                    # Validate source: SG-reference rule vs CIDR rule
+                    src_res_id: Optional[str] = None
+                    if rule.referenced_security_group_id:
+                        # Source must resolve to exactly one ENI that carried the referenced SG at flow time.
+                        # Without configuration history, or on unknown/ambiguous mapping, do not assume.
+                        src_res_id = self._resolve_source_resource(flow, configuration_history)
+                        if not src_res_id:
+                            continue
+                        src_sgs = configuration_history.get_security_groups_for_resource(
+                            src_res_id, flow_time
+                        )
+                        if rule.referenced_security_group_id not in src_sgs:
+                            continue
+                    elif not self._is_ip_in_cidr(flow.source_ip, rule.cidr_ipv4):
                         continue
 
                     # Validate destination resource and Security Group association
@@ -308,14 +412,32 @@ class CrossLayerCorrelator:
                     if self._is_revoked(rule, ct_time, flow_time, ct_revoke_events):
                         continue
 
+                    # Record verified SG-to-SG reference (source ENI -> referenced SG -> protected SG)
+                    if rule.referenced_security_group_id:
+                        ref_key = (
+                            rule.referenced_security_group_id,
+                            rule.security_group_id,
+                            rule.protocol,
+                            rule.from_port,
+                            rule.to_port,
+                        )
+                        sg_ref_sources.setdefault(ref_key, set()).add(src_res_id)
+
                     # Flow verified as matching and enabled by rule
                     if flow not in matching_flows:
                         matching_flows.append(flow)
                         matched_resource_ids.add(target_res_id)
+                        if rule.referenced_security_group_id:
+                            rule_desc = (
+                                f"referenced_sg={rule.referenced_security_group_id} "
+                                f"(source ENI {src_res_id} attached to it at flow time)"
+                            )
+                        else:
+                            rule_desc = f"cidr={rule.cidr_ipv4}"
                         reasons.append(
                             f"Flow {flow.event_id} ({flow.source_ip} -> {flow.destination_ip}:{flow.destination_port} "
                             f"{flow_proto}) matched SG {rule.security_group_id} rule "
-                            f"(proto={rule.protocol}, port={rule.from_port}-{rule.to_port}, cidr={rule.cidr_ipv4}) "
+                            f"(proto={rule.protocol}, port={rule.from_port}-{rule.to_port}, {rule_desc}) "
                             f"{int(delta_seconds)}s after configuration change."
                         )
 
@@ -334,6 +456,20 @@ class CrossLayerCorrelator:
                     f"was responsible for generating the network traffic."
                 )
 
+                sg_references = [
+                    {
+                        "referenced_security_group_id": ref_sg,
+                        "security_group_id": prot_sg,
+                        "protocol": proto,
+                        "from_port": from_p,
+                        "to_port": to_p,
+                        "source_resource_ids": sorted(srcs),
+                    }
+                    for (ref_sg, prot_sg, proto, from_p, to_p), srcs in sorted(
+                        sg_ref_sources.items(), key=lambda kv: tuple(str(x) for x in kv[0])
+                    )
+                ]
+
                 alert = DetectionAlert(
                     alert_id=f"alert-cross-{uuid.uuid4().hex[:12]}",
                     rule_id=CROSS_LAYER_RULE_ID,
@@ -351,6 +487,10 @@ class CrossLayerCorrelator:
                         "security_group_id": sg_rules[0].security_group_id if sg_rules else None,
                         "correlation_window_seconds": self.correlation_window_seconds,
                         "matched_flows_count": len(matching_flows),
+                        "sg_references": sg_references,
+                        "referenced_security_group_ids": sorted(
+                            {r["referenced_security_group_id"] for r in sg_references}
+                        ),
                         "uncertainty_note": "Network flow actor and IAM actor remain distinct; reachability established without confirmed exploitation.",
                     },
                 )
