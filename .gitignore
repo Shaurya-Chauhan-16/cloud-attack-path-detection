@@ -1,0 +1,39 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing and coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Frontend build & dependencies
+node_modules/
+dist/
+
+# Python packaging & distribution build artifacts
+*.egg-info/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+var/
+sdist/
+wheels/
+*.egg
+
+# Local collector database and raw telemetry
+data/local/
+
+# IDE files
+.vscode/
+.idea/

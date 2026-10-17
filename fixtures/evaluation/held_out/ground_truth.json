@@ -1,0 +1,41 @@
+[
+  {
+    "scenario_id": "sc-09-ambiguous-resource-mapping",
+    "category": "ambiguous_mapping",
+    "description": "Ambiguous IP-to-ENI mapping prevents safe correlation.",
+    "is_positive_finding": true,
+    "expected_rule_id": "NET-BL-001",
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-10-out-of-order-telemetry",
+    "category": "out_of_order",
+    "description": "Out of order batch arrival resolved deterministically.",
+    "is_positive_finding": true,
+    "expected_rule_id": "CORR-CROSS-001",
+    "expected_relationships": [
+      {
+        "config_event_id": "ct-10",
+        "flow_event_id": "fl-10",
+        "resource_id": "eni-target",
+        "relation_type": "inferred_sequence"
+      }
+    ]
+  },
+  {
+    "scenario_id": "sc-11-missing-evidence",
+    "category": "missing_data",
+    "description": "Event missing required attributes cannot correlate.",
+    "is_positive_finding": false,
+    "expected_rule_id": null,
+    "expected_relationships": []
+  },
+  {
+    "scenario_id": "sc-12-rule-revoked-before-flow",
+    "category": "revoked_rule",
+    "description": "Revocation prior to flow arrival invalidates causal enablement relationship.",
+    "is_positive_finding": true,
+    "expected_rule_id": "NET-BL-001",
+    "expected_relationships": []
+  }
+]
