@@ -9,6 +9,7 @@ export async function getAlerts(params?: AlertFilterParams): Promise<AlertListRe
   if (params?.case_id) query.append("case_id", params.case_id);
   if (params?.limit) query.append("limit", params.limit.toString());
   if (params?.offset) query.append("offset", params.offset.toString());
+  if (params?.force_refresh) query.append("force_refresh", "true");
 
   const qs = query.toString();
   return fetchApi<AlertListResponse>(`/alerts${qs ? `?${qs}` : ""}`);

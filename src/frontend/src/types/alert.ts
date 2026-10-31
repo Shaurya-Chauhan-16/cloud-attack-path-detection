@@ -40,4 +40,5 @@ export interface AlertFilterParams {
   case_id?: string;
   limit?: number;
   offset?: number;
+  force_refresh?: boolean;
 }

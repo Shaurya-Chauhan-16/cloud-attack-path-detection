@@ -18,6 +18,7 @@ async def list_alerts(
     case_id: Optional[str] = Query(None, description="Filter by case ID"),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    force_refresh: bool = Query(False, description="Force synchronous re-run of detection analysis"),
     service: AlertService = Depends(get_alert_service),
 ) -> AlertListResponse:
     """Retrieve all detection alerts matching optional filters."""
@@ -29,7 +30,16 @@ async def list_alerts(
         limit=limit,
         offset=offset,
     )
-    items = service.list_alerts(filters=filters)
+    items = service.list_alerts(filters=filters, force_refresh=force_refresh)
+    return AlertListResponse(total=len(items), items=items)
+
+
+@router.post("/refresh", response_model=AlertListResponse)
+async def refresh_alerts(
+    service: AlertService = Depends(get_alert_service),
+) -> AlertListResponse:
+    """Force re-run detection analysis and return updated alerts."""
+    items = service.list_alerts(force_refresh=True)
     return AlertListResponse(total=len(items), items=items)
 
 

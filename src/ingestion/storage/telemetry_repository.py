@@ -76,6 +76,21 @@ class TelemetryRepository:
                         if ips:
                             eni_to_ip_map[eni_id] = ips
 
+                        # Determine attachment time: use AttachTime if available, fallback to snap_time
+                        attach_time = snap_time
+                        raw_attach = (ni.get("Attachment") or {}).get("AttachTime")
+                        if raw_attach:
+                            try:
+                                if isinstance(raw_attach, datetime):
+                                    parsed_att = raw_attach
+                                else:
+                                    parsed_att = datetime.fromisoformat(str(raw_attach).replace("Z", "+00:00"))
+                                if parsed_att.tzinfo is None:
+                                    parsed_att = parsed_att.replace(tzinfo=timezone.utc)
+                                attach_time = parsed_att
+                            except Exception:
+                                attach_time = snap_time
+
                         for g in ni.get("Groups", []):
                             sg_id = g.get("GroupId")
                             if sg_id:
@@ -83,7 +98,7 @@ class TelemetryRepository:
                                     SecurityGroupAttachment(
                                         resource_id=eni_id,
                                         security_group_id=sg_id,
-                                        attached_at=snap_time,
+                                        attached_at=attach_time,
                                     )
                                 )
             except Exception:
@@ -227,3 +242,24 @@ class TelemetryRepository:
             if evt:
                 found.append(evt)
         return found
+
+    def count_events(self, source: Optional[EventSource] = None) -> int:
+        """Count total events in SQLite database."""
+        conn = self._get_connection()
+        if not conn:
+            return 0
+        total = 0
+        try:
+            cursor = conn.cursor()
+            if source is None or source == EventSource.CLOUDTRAIL:
+                cursor.execute("SELECT COUNT(*) FROM trail_events")
+                total += cursor.fetchone()[0]
+            if source is None or source == EventSource.VPC_FLOW:
+                cursor.execute("SELECT COUNT(*) FROM flow_events")
+                total += cursor.fetchone()[0]
+        except Exception:
+            return 0
+        finally:
+            conn.close()
+        return total
+

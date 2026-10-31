@@ -13,11 +13,11 @@ export function Alerts() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityLevel | "">("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const loadAlerts = async () => {
+  const loadAlerts = async (forceRefresh = false) => {
     setLoading(true);
     setError(null);
     try {
-      const params: AlertFilterParams = { limit: 100 };
+      const params: AlertFilterParams = { limit: 100, force_refresh: forceRefresh };
       if (priorityFilter) {
         params.priority = priorityFilter;
       }
@@ -115,7 +115,7 @@ export function Alerts() {
         </div>
 
         <button
-          onClick={loadAlerts}
+          onClick={() => loadAlerts(true)}
           style={{
             padding: "8px 16px",
             backgroundColor: "#334155",

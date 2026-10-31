@@ -20,7 +20,8 @@ async def list_events(
 ) -> EventListResponse:
     """List telemetry events (CloudTrail and VPC Flow Logs)."""
     items = service.list_events(source=source, limit=limit, offset=offset)
-    return EventListResponse(total=len(items), items=items)
+    total = service.count_events(source=source)
+    return EventListResponse(total=total, items=items)
 
 
 @router.get("/{event_id}", response_model=TelemetryEventResponse)

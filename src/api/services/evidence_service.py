@@ -33,6 +33,10 @@ class EvidenceService:
             for evt in events
         ]
 
+    def count_events(self, source: Optional[EventSource] = None) -> int:
+        """Count total events matching the filter."""
+        return self.repository.count_events(source=source)
+
     def get_event_by_id(self, event_id: str) -> Optional[TelemetryEventResponse]:
         """Fetch a single telemetry event by ID."""
         evt = self.repository.get_event_by_id(event_id)
